@@ -2,6 +2,9 @@ import requests
 from bs4 import BeautifulSoup
 import re 
 import json
+import time
+import threading
+import logging
 
 
 
@@ -18,23 +21,47 @@ url = "https://2ip.ua/ru"
 headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0'}
 list_port = ['80','443']
 
-for p in list_port:
-	for a in range(1,10000):
-		for b in range(1,10000):
-			for c in range(1,10000):
-				for d in range(1,1000):
-					IP_proxy = str(a) + '.' + str(b)  + '.' + str(c)  + '.'  + str(d)  + ':' + p
-					print(IP_proxy)
+timeStart = time.strftime("%d-%m-%Y %H.%M.%S", time.localtime())
+print('Start at  ' + timeStart)
 
-					http_proxy = "http://" + IP_proxy
-					https_proxy = "https://" + IP_proxy 
-					try:
-						proxies = {"http": http_proxy,
-						"https":https_proxy}
-						response = requests.get(url,headers=headers,proxies=proxies,timeout=0.01)
-						response.encoding = 'utf-8'	
-						print(response.status_code)
 
-					except Exception as err:
-						pass
-						# print(err)
+def get_logger():
+    logger = logging.getLogger("threading_scan")
+    logger.setLevel(logging.INFO)
+ 
+    fh = logging.FileHandler("threading.log")
+    fmt = '%(asctime)s - %(number)s - %(message)s'
+    formatter = logging.Formatter(fmt)
+    fh.setFormatter(formatter)
+ 
+    logger.addHandler(fh)
+    return logger
+
+
+def scan(number,logger):
+	for p in list_port:
+		for a in range(1,10000):
+			for b in range(1,10000):
+				for c in range(1,10000):
+					for d in range(1,1000):
+						IP_proxy = str(a) + '.' + str(b)  + '.' + str(c)  + '.'  + str(d)  + ':' + p
+						# print(number,IP_proxy,sep='. ')
+						logger.debug('number: {}'.format(IP_proxy))
+
+						http_proxy = "http://" + IP_proxy
+						https_proxy = "https://" + IP_proxy 
+						try:
+							proxies = {"http": http_proxy,
+							"https":https_proxy}
+							response = requests.get(url,headers=headers,proxies=proxies,timeout=0.01)
+							response.encoding = 'utf-8'	
+							# print(response.status_code)
+							logger.debug('number: {}'.format(response.status_code))
+
+						except Exception as err:
+							pass
+							# print(err)
+
+logger = get_logger()
+for number in range(1,21):
+	threading.Thread(target=scan,args=[number,logger]).start()
