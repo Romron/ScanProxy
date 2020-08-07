@@ -5,7 +5,8 @@ import json
 import time
 import os
 
-from multiprocessing import Process
+import multiprocessing
+import itertools
 import threading
 import logging
 
@@ -25,39 +26,68 @@ headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gec
 list_port = ['80','443']
 
 timeStart = time.strftime("%d-%m-%Y %H.%M.%S", time.localtime())
-print('\nStart at  ' + timeStart)
+# print('\nStart at  ' + timeStart)
 
+list_WorkProxy = []
 
-def scan(number):
+def IP_Generator():
 	for p in list_port:
 		for a in range(1,10000):
 			for b in range(1,10000):
 				for c in range(1,10000):
 					for d in range(1,1000):
-						proc = os.getpid()
 						IP_proxy = str(a) + '.' + str(b)  + '.' + str(c)  + '.'  + str(d)  + ':' + p
 						# print(number,IP_proxy,sep='. ')
-						print('{0}. process id: {1}   {2}'.format(number,proc,IP_proxy))
+						# print('{0}. process id: {1}   {2}'.format(number,proc,IP_proxy))
 
-						http_proxy = "http://" + IP_proxy
-						https_proxy = "https://" + IP_proxy 
-						try:
-							proxies = {"http": http_proxy,
-							"https":https_proxy}
-							response = requests.get(url,headers=headers,proxies=proxies,timeout=0.01)
-							response.encoding = 'utf-8'	
-							print(response.status_code)
+						yield IP_proxy
 
-						except Exception as err:
-							pass
-							# print(err)
+						# http_proxy = "http://" + IP_proxy
+						# https_proxy = "https://" + IP_proxy 
+						# try:
+						# 	proxies = {"http": http_proxy,
+						# 	"https":https_proxy}
+						# 	response = requests.get(url,headers=headers,proxies=proxies,timeout=0.01)
+						# 	response.encoding = 'utf-8'	
+						# 	print(response.status_code)
+
+						# except Exception as err:
+						# 	pass
+						# 	# print(err)
+
+
+def make_all(IP_proxy):
+	http_proxy = "http://" + IP_proxy
+	https_proxy = "https://" + IP_proxy 
+	print(IP_proxy)
+	try:
+		proxies = {"http": http_proxy,
+		"https":https_proxy}
+		response = requests.get(url,headers=headers,proxies=proxies,timeout=0.01)
+		response.encoding = 'utf-8'	
+		list_WorkProxy.append(IP_proxy)
+		print(response.status_code)
+
+	except Exception as err:
+		pass
+		# print(err)
+	return list_WorkProxy
+
+def main():
+	timeStart = time.strftime("%d-%m-%Y %H.%M.%S", time.localtime())
+	print('Start at  ' + timeStart)
+	for x in range(0,2):
+		print('***************************	' + str(x) + '	************************************')
+		ip_generator = IP_Generator()
+		with multiprocessing.Pool(50) as pool:
+			pool.map(make_all,list(itertools.islice(ip_generator,10**6*x,10**6*(x+1))))
+
+		print('Найденные прокси:')
+		print(list_WorkProxy)
+
+
+
+
 
 if __name__ == '__main__':
-	procs = []
-	for number in range(20):
-		proc = Process(target=scan, args=(number,))
-		procs.append(proc)
-		proc.start()
-
-	for proc in procs:
-		proc.join()
+	main()
