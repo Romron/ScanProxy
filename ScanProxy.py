@@ -3,6 +3,9 @@ from bs4 import BeautifulSoup
 import re 
 import json
 import time
+import os
+
+from multiprocessing import Process
 import threading
 import logging
 
@@ -22,31 +25,19 @@ headers = {'User-Agent' : 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gec
 list_port = ['80','443']
 
 timeStart = time.strftime("%d-%m-%Y %H.%M.%S", time.localtime())
-print('Start at  ' + timeStart)
+print('\nStart at  ' + timeStart)
 
 
-def get_logger():
-    logger = logging.getLogger("threading_scan")
-    logger.setLevel(logging.INFO)
- 
-    fh = logging.FileHandler("threading.log")
-    fmt = '%(asctime)s - %(number)s - %(message)s'
-    formatter = logging.Formatter(fmt)
-    fh.setFormatter(formatter)
- 
-    logger.addHandler(fh)
-    return logger
-
-
-def scan(number,logger):
+def scan(number):
 	for p in list_port:
 		for a in range(1,10000):
 			for b in range(1,10000):
 				for c in range(1,10000):
 					for d in range(1,1000):
+						proc = os.getpid()
 						IP_proxy = str(a) + '.' + str(b)  + '.' + str(c)  + '.'  + str(d)  + ':' + p
 						# print(number,IP_proxy,sep='. ')
-						logger.debug('number: {}'.format(IP_proxy))
+						print('{0}. process id: {1}   {2}'.format(number,proc,IP_proxy))
 
 						http_proxy = "http://" + IP_proxy
 						https_proxy = "https://" + IP_proxy 
@@ -55,13 +46,18 @@ def scan(number,logger):
 							"https":https_proxy}
 							response = requests.get(url,headers=headers,proxies=proxies,timeout=0.01)
 							response.encoding = 'utf-8'	
-							# print(response.status_code)
-							logger.debug('number: {}'.format(response.status_code))
+							print(response.status_code)
 
 						except Exception as err:
 							pass
 							# print(err)
 
-logger = get_logger()
-for number in range(1,21):
-	threading.Thread(target=scan,args=[number,logger]).start()
+if __name__ == '__main__':
+	procs = []
+	for number in range(20):
+		proc = Process(target=scan, args=(number,))
+		procs.append(proc)
+		proc.start()
+
+	for proc in procs:
+		proc.join()
